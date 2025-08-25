@@ -5,8 +5,8 @@ uvicorn==0.35.0
 # Data validation (automatically installed with FastAPI)
 pydantic==2.11.7
 
-# Google Generative AI
-google-generativeai==0.8.5
+# Google Generative AI (newer SDK)
+google-genai==1.31.0
 
 # Environment variables
 python-dotenv==1.1.1
