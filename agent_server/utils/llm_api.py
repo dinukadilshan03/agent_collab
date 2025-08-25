@@ -1,39 +1,49 @@
 import os
 import json
-import google.generativeai as genai
 from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
+# Load API key from .env
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+api_key = os.getenv("GEMINI_API_KEY")
 
-model = genai.GenerativeModel("gemini-2.5-flash")
+# Initialize client
+client = genai.Client(api_key=api_key)
+
 
 def call_llm(prompt: str) -> dict:
     try:
-        response = model.generate_content(prompt)
-        content = response.text
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=0
+                )  # Optional: disables "thinking"
+            ),
+        )
 
-        # Extract JSON from markdown code blocks if present
+        content = response.text
+        if not content:
+            return {"error": "No content in response", "raw": str(response)}
+
+        # Extract JSON from markdown code blocks
         if "```json" in content:
-            # Find the JSON content between ```json and ```
-            start = content.find("```json") + 7  # Skip "```json"
+            start = content.find("```json") + 7
             end = content.find("```", start)
-            if end != -1:
-                json_content = content[start:end].strip()
-            else:
-                json_content = content[start:].strip()
+            json_content = (
+                content[start:end].strip() if end != -1 else content[start:].strip()
+            )
         elif "```" in content:
-            # Handle generic code blocks
             start = content.find("```") + 3
             end = content.find("```", start)
-            if end != -1:
-                json_content = content[start:end].strip()
-            else:
-                json_content = content[start:].strip()
+            json_content = (
+                content[start:end].strip() if end != -1 else content[start:].strip()
+            )
         else:
             json_content = content.strip()
 
-        # Try to parse JSON from the extracted content
         return json.loads(json_content)
     except json.JSONDecodeError:
         return {"error": "Failed to parse JSON", "raw": content}
